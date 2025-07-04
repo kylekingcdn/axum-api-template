@@ -22,7 +22,7 @@ RUN \
     && rm -rf /var/lib/apt/lists/*
 
 # copy targets from build stage
-COPY --from=prod_build /usr/local/cargo/bin/ /usr/local/bin/{{project-name}}
+COPY --from=prod_build /usr/local/cargo/bin/{{project-name}} /usr/local/bin/{{project-name}}
 
 # run command
 CMD ["/usr/local/bin/{{project-name}}"]
