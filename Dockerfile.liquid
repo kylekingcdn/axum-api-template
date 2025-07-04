@@ -1,0 +1,28 @@
+# -- base stage with app source available
+FROM rust:1.88 AS base
+WORKDIR /app
+COPY . .
+
+# -- test stage
+FROM base AS test
+RUN cargo test --no-fail-fast
+
+# -- prod build stage
+FROM base AS prod_build
+RUN cargo install --path .
+
+# -- prod runtime stage
+FROM debian:bookworm-slim AS prod_serve
+
+# install deps
+RUN \
+    apt update \
+    && apt install -y \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# copy targets from build stage
+COPY --from=prod_build /usr/local/cargo/bin/ /usr/local/bin/{{project-name}}
+
+# run command
+CMD ["/usr/local/bin/{{project-name}}"]

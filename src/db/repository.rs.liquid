@@ -1,0 +1,20 @@
+use sqlx::postgres::PgPool;
+use std::clone::Clone;
+use std::fmt::Debug;
+
+pub mod example;
+
+pub trait Repository: Debug + Clone {
+    type Row;
+
+    const TABLE_NAME: &'static str;
+
+    fn new(db: PgPool) -> Self;
+
+    fn build_in_params(start: usize, count: usize) -> String {
+        (start..start + count)
+            .map(|i| format!("${i}"))
+            .collect::<Vec<String>>()
+            .join(", ")
+    }
+}

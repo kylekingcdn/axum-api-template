@@ -1,0 +1,55 @@
+use sqlx::postgres::{PgPool, PgPoolOptions};
+
+pub mod conf;
+pub mod error;
+pub mod repository;
+
+pub use conf::DatabaseConfig;
+pub use error::DbError;
+pub use repository::{
+    Repository,
+    example::{ExampleRepository, ExampleRow},
+};
+
+#[derive(Debug, Clone)]
+pub struct Database {
+    db: PgPool,
+}
+impl Database {
+    pub fn new(config: DatabaseConfig) -> Self {
+        let db = PgPoolOptions::new()
+            .max_connections(config.max_connections)
+            .connect_lazy(&config.url)
+            .expect("Valid database URL");
+
+        Self { db }
+    }
+
+    pub async fn migrate(&self) -> color_eyre::Result<()> {
+        let connect_opts = self.db.connect_options();
+        let db_host = connect_opts.get_host();
+        let db_database = connect_opts.get_database();
+        tracing::info!(?db_host, ?db_database, "Running migrations");
+
+        sqlx::migrate!("./migrations").run(&self.db).await?;
+
+        Ok(())
+    }
+
+    pub async fn new_migrated(config: DatabaseConfig) -> color_eyre::Result<Self> {
+        let migrate = config.migrate;
+        let database = Self::new(config);
+
+        if migrate {
+            database.migrate().await?;
+        } else {
+            tracing::info!("Skipping migrations");
+        }
+
+        Ok(database)
+    }
+
+    pub fn example(&self) -> ExampleRepository {
+        ExampleRepository::new(self.db.clone())
+    }
+}

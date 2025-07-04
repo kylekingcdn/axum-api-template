@@ -1,0 +1,51 @@
+use aide::axum::routing::get;
+use aide::axum::{ApiRouter, IntoApiResponse};
+use aide::openapi::{OpenApi, Tag};
+use axum::response::IntoResponse;
+use axum::{Extension, Json};
+use std::sync::Arc;
+
+use crate::api::ApiContext;
+
+pub mod docs;
+pub mod example;
+pub mod status;
+
+pub const OPENAPI_SPEC_PATH_SUFFIX: &str = "/docs/openapi.json";
+
+pub fn tags() -> Vec<Tag> {
+    vec![
+        example::tag(),
+        status::tag(),
+    ]
+}
+
+pub fn api_routes(publish_openapi_spec: bool) -> ApiRouter<ApiContext> {
+    tracing::debug!("Loading /v1 api routes");
+
+    let mut router = ApiRouter::new()
+        .nest("/example", example::routes())
+        .nest("/status", status::routes());
+
+    if publish_openapi_spec {
+        router = router.route(OPENAPI_SPEC_PATH_SUFFIX, get(get_openapi_spec));
+    }
+
+    router
+}
+
+pub fn docs_routes(version_path_prefix: &str) -> ApiRouter<ApiContext> {
+    let full_spec_path = format!("{version_path_prefix}{OPENAPI_SPEC_PATH_SUFFIX}");
+    let routes = docs::docs_frontend_routes(&full_spec_path);
+
+    routes
+}
+
+pub async fn get_openapi_spec(Extension(api): Extension<Arc<OpenApi>>) -> impl IntoApiResponse {
+    {%- if db_support %}
+    Json(api).into_response()
+    {%- else %}
+    // workaround for broken Arc serialize when sqlx support is removed?
+    Json((*api).clone()).into_response()
+    {%- endif %}
+}

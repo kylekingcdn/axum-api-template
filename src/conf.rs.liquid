@@ -1,0 +1,47 @@
+use config::{Config, Environment};
+use dotenvy::dotenv;
+use serde::Deserialize;
+
+use tracing_kickstart::TracingConfig;
+
+use crate::api::ApiConfig;
+{%- if db_support %}
+use crate::db::DatabaseConfig;
+{%- endif %}
+
+const CONFIG_ENV_PREFIX: &str = "APP";
+const CONFIG_ENV_DELIM: &str = "__";
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct Conf {
+    #[serde(default)]
+    pub api: ApiConfig,
+
+    {% if db_support -%}
+    pub database: DatabaseConfig,
+
+    {% endif -%}
+    #[serde(default)]
+    pub tracing: TracingConfig,
+}
+
+impl Conf {
+    pub fn load() -> color_eyre::Result<Self> {
+        // load from .env file
+        dotenv().ok();
+
+        // init config settings
+        let settings = Config::builder()
+            .add_source(
+                Environment::with_prefix(CONFIG_ENV_PREFIX)
+                    .separator(CONFIG_ENV_DELIM)
+                    .try_parsing(true),
+            )
+            .build()?;
+
+        // load config
+        let config = settings.try_deserialize::<Conf>()?;
+
+        Ok(config)
+    }
+}

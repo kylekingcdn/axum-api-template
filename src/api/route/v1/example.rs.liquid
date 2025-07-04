@@ -1,0 +1,81 @@
+use aide::axum::{ApiRouter, IntoApiResponse};
+use aide::axum::routing::get_with;
+use aide::openapi::Tag;
+use aide::transform::TransformOperation;
+use aide::OperationIo;
+use axum::extract::{Json, Path, State};
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+
+use crate::api::{ApiContext, ApiError};
+use crate::api::response::{ListResponse, ObjResponse};
+
+pub const TAG_NAME: &str = "example";
+pub const TAG_DESC: Option<&str> = None;
+
+pub fn routes() -> ApiRouter<ApiContext> {
+    tracing::debug!("Loading /v1/example routes");
+    ApiRouter::new()
+        .api_route("/{id}", get_with(get_example, get_example_docs))
+        .api_route("/", get_with(get_examples, get_examples_docs))
+        .with_path_items(|p| p.tag(TAG_NAME))
+}
+pub fn tag() -> Tag {
+    Tag {
+        name: TAG_NAME.into(),
+        description: TAG_DESC.map(|s| s.into()),
+        ..Default::default()
+    }
+}
+
+async fn get_examples(State(_context): State<ApiContext>) -> impl IntoApiResponse {
+    let example_obj = ExampleObj { id: Uuid::new_v4(), description: "Example object".into() };
+    let list_res: Result<Vec<ExampleObj>, ApiError> = Ok(vec![example_obj]);
+
+    ListResponse::from_res(list_res, StatusCode::OK).into_response()
+}
+fn get_examples_docs(docs: TransformOperation) -> TransformOperation {
+    docs.summary("List of example objects")
+        .description("Example list API request description.")
+        .response_with::<200, Json<ListResponse<ExampleObj>>, _>(|res| res.example(
+            ListResponse::new(vec![
+                ExampleObj { id: Uuid::new_v4(), description: "".into() }
+            ],
+            StatusCode::OK
+        )))
+}
+
+async fn get_example(
+    State(_context): State<ApiContext>,
+    Path(get_query): Path<GetExampleObjQuery>,
+) -> impl IntoApiResponse {
+    let example_obj = ExampleObj { id: get_query.id, description: "Example object".into() };
+    let obj_res: Result<ExampleObj, ApiError> = Ok(example_obj);
+
+    ObjResponse::from_res(obj_res, StatusCode::OK).into_response()
+}
+fn get_example_docs(docs: TransformOperation) -> TransformOperation {
+    docs.summary("Get example object")
+        .description("Get example API request description.")
+        .response_with::<200, Json<ObjResponse<ExampleObj>>, _>(|res| res.example(
+            ObjResponse::new(ExampleObj { id: Uuid::new_v4(), description: "Example object".into() }, StatusCode::OK)
+        ))
+}
+
+#[derive(Deserialize, JsonSchema)]
+pub struct GetExampleObjQuery {
+    /// ID of the object
+    id: Uuid
+}
+
+#[derive(Serialize, JsonSchema, OperationIo)]
+pub struct ExampleObj {
+    /// ID of the object
+    id: Uuid,
+    /// Description of the object
+    description: String
+}
+

@@ -1,0 +1,140 @@
+use axum::extract::Json;
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
+use serde::Serialize;
+use schemars::JsonSchema;
+
+use crate::api::error::ApiError;
+
+#[derive(Debug, Clone, Serialize, JsonSchema)]
+pub struct ObjResponse<T> {
+    /// List contents
+    pub data: Option<T>,
+    /// Error message, if any
+    pub error: Option<String>,
+    /// Request status
+    pub status: u16,
+    /// Request status text
+    pub status_text: String,
+}
+impl<T> ObjResponse<T> {
+    pub fn new(data: T, status: StatusCode) -> Self {
+        Self {
+            data: Some(data),
+            error: None,
+            status: status.as_u16(),
+            status_text: status.to_string(),
+        }
+    }
+}
+impl<T: Serialize + JsonSchema> ObjResponse<T> {
+    pub fn from_data(data: T, status: StatusCode) -> Self {
+        Self::new(data, status)
+    }
+    pub fn from_res(res: Result<T, ApiError>, success_status: StatusCode) -> Self {
+        match res {
+            Ok(data) => Self::from_data(data, success_status),
+            Err(err) => err.into()
+        }
+    }
+}
+impl<T: Serialize + JsonSchema> IntoResponse for ObjResponse<T> {
+    fn into_response(self) -> Response {
+        ResponseJson::from(self).into_response()
+    }
+}
+impl<T> From<ApiError> for ObjResponse<T> {
+    fn from(error: ApiError) -> Self {
+        let status_code = error.status_code();
+        Self {
+            data: None,
+            error: Some(error.to_string()),
+            status: status_code.into(),
+            status_text: status_code.to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, JsonSchema)]
+pub struct ListResponse<T> {
+    /// List contents
+    pub data: Option<Vec<T>>,
+    /// Total number of objects in all pages
+    pub count: Option<u16>,
+    /// Error message, if any
+    pub error: Option<String>,
+    /// Request status
+    pub status: u16,
+    /// Request status text
+    pub status_text: String,
+}
+impl<T> ListResponse<T> {
+    pub fn new(data: Vec<T>, status: StatusCode) -> Self {
+        Self {
+            count: Some(data.len() as u16),
+            data: Some(data),
+            error: None,
+            status: status.as_u16(),
+            status_text: status.to_string(),
+        }
+    }
+}
+impl<T: Serialize + JsonSchema> ListResponse<T> {
+    pub fn from_data(data: Vec<T>, status: StatusCode) -> Self {
+        Self::new(data, status)
+    }
+    pub fn from_res(res: Result<Vec<T>, ApiError>, success_status: StatusCode) -> Self {
+        match res {
+            Ok(data) => Self::from_data(data, success_status),
+            Err(err) => err.into()
+        }
+    }
+}
+impl<T: Serialize + JsonSchema> IntoResponse for ListResponse<T> {
+    fn into_response(self) -> Response {
+        ResponseJson::from(self).into_response()
+    }
+}
+impl<T> From<ApiError> for ListResponse<T> {
+    fn from(error: ApiError) -> Self {
+        let status_code = error.status_code();
+        Self {
+            count: None,
+            data: None,
+            error: Some(error.to_string()),
+            status: status_code.into(),
+            status_text: status_code.to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ResponseJson<T> {
+    body: T,
+    status: StatusCode
+}
+impl<T: Serialize + JsonSchema> ResponseJson<T> {
+    pub fn new(data: T, status_code: StatusCode) -> Self {
+        Self {
+            status: status_code,
+            body: data,
+        }
+    }
+}
+impl<T: Serialize + JsonSchema> IntoResponse for ResponseJson<T> {
+    fn into_response(self) -> Response {
+        (self.status, Json(self.body)).into_response()
+    }
+}
+impl<T: Serialize + JsonSchema> From<ObjResponse<T>> for ResponseJson<ObjResponse<T>> {
+    fn from(data: ObjResponse<T>) -> Self {
+        let status_code = StatusCode::from_u16(data.status).unwrap();
+        ResponseJson::new(data, status_code)
+    }
+}
+impl<T: Serialize + JsonSchema> From<ListResponse<T>> for ResponseJson<ListResponse<T>> {
+    fn from(data: ListResponse<T>) -> Self {
+        let status_code = StatusCode::from_u16(data.status).unwrap();
+        ResponseJson::new(data, status_code)
+    }
+}

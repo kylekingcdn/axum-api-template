@@ -1,0 +1,31 @@
+use aide::{
+    axum::ApiRouter,
+    openapi::Tag,
+    swagger::Swagger,
+    transform::TransformOpenApi,
+};
+
+use crate::api::ApiContext;
+
+pub fn docs_frontend_routes(spec_path: &str) -> ApiRouter<ApiContext> {
+    ApiRouter::new().route("/", Swagger::new(spec_path).axum_route())
+}
+
+pub fn open_api_transform(api: TransformOpenApi, tags: Vec<Tag>) -> TransformOpenApi {
+    let mut api = api.title("{{project-name-pretty}}")
+        .summary("API Summary");
+        // .description(include_str!("README.md"))
+    for tag in tags {
+        api = api.tag(tag);
+    }
+    api
+    // api.default_response_with::<Json<AppError>, _>(|res| {
+    //     res.example(AppError {
+    //         error: "some error happened".to_string(),
+    //         error_details: None,
+    //         error_id: Uuid::nil(),
+    //         // This is not visible.
+    //         status: StatusCode::IM_A_TEAPOT,
+    //     })
+    // })
+}

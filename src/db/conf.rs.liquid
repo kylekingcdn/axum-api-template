@@ -1,0 +1,23 @@
+use serde::Deserialize;
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct DatabaseConfig {
+    /// URL for neptune account indexer primary database
+    pub url: String, // mandatory
+
+    /// Toggles automatic database migrations during app startup
+    #[serde(default = "DatabaseConfig::migrate_default")]
+    pub migrate: bool,
+
+    /// Maximum number of connections to database
+    #[serde(default = "DatabaseConfig::max_connections_default")]
+    pub max_connections: u32,
+}
+impl DatabaseConfig {
+    pub fn migrate_default() -> bool {
+        false
+    }
+    pub fn max_connections_default() -> u32 {
+        50
+    }
+}

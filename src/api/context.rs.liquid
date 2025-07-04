@@ -1,0 +1,40 @@
+use crate::Conf;
+{%- if db_support %}
+use crate::Database;
+{%- endif %}
+
+/// `ApiContext` holds shared dependencies for API requests.
+///
+/// While dependencies could be passed into each handler individually, this reduced the impact area for changes.
+#[derive(Debug, Clone)]
+pub struct ApiContext {
+    conf: Conf,
+    {%- if db_support %}
+    db: Database,
+    {%- endif %}
+}
+impl ApiContext {
+    pub fn new(
+        conf: Conf,
+        {%- if db_support %}
+        db: Database,
+        {%- endif %}
+    ) -> Self {
+        ApiContext {
+            conf,
+            {%- if db_support %}
+            db,
+            {%- endif %}
+        }
+    }
+    pub fn conf(&self) -> &Conf {
+        &self.conf
+    }
+    {%- if db_support %}
+
+    /// Returned as a reference, should typically be cloned
+    pub fn db(&self) -> &Database {
+        &self.db
+    }
+    {%- endif %}
+}

@@ -1,0 +1,49 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'src/**'
+      - 'migrations/**'
+      - 'Cargo.*'
+      - 'Dockerfile'
+      - '.github/workflows/**'
+
+env:
+  IMAGE_ENDPOINT: ${{ vars.DOCKER_IMAGE_REGISTRY }}/${{ vars.DOCKER_IMAGE_NAME }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    # Checkout
+    - uses: actions/checkout@v4
+
+    # Install doctl
+    - name: Install doctl
+      uses: digitalocean/action-doctl@v2
+      with:
+        token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+    # Build image
+    - name: Test and build image
+      run: docker build --rm=false --no-cache --target test . && docker build --tag "${IMAGE_ENDPOINT}" .
+
+    # Authenticate with DO registry
+    - name: Log in to DigitalOcean Container Registry with short-lived credentials
+      run: doctl registry login --expiry-seconds 1200
+
+    # Add and push SHA-1 tag
+    - name: Add SHA-1 tag
+      run: docker tag ${IMAGE_ENDPOINT} "${IMAGE_ENDPOINT}:$(echo "${GITHUB_SHA}" | head -c7)"
+    - name: Push SHA-1 tag
+      run: docker push "${IMAGE_ENDPOINT}:$(echo "${GITHUB_SHA}" | head -c7)"
+
+    # Add and push ref name (e.g. branch) tag
+    - name: Add ref tag
+      run: docker tag ${IMAGE_ENDPOINT} "${IMAGE_ENDPOINT}:${GITHUB_REF_NAME//\//-}"
+    - name: Push ref tag
+      run: docker push "${IMAGE_ENDPOINT}:${GITHUB_REF_NAME//\//-}"

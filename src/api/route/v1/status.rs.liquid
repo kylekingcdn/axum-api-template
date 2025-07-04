@@ -1,0 +1,31 @@
+use aide::axum::ApiRouter;
+use aide::axum::routing::get_with;
+use aide::openapi::Tag;
+use aide::transform::TransformOperation;
+
+use crate::api::ApiContext;
+
+pub const TAG_NAME: &str = "status";
+pub const TAG_DESC: Option<&str> = None;
+
+pub fn routes() -> ApiRouter<ApiContext> {
+    tracing::debug!("Loading /v1/status routes");
+    ApiRouter::new()
+        .api_route("/health", get_with(get_health, get_health_docs))
+        .with_path_items(|p| p.tag(TAG_NAME))
+}
+pub fn tag() -> Tag {
+    Tag {
+        name: TAG_NAME.into(),
+        description: TAG_DESC.map(|s| s.into()),
+        ..Default::default()
+    }
+}
+
+async fn get_health() -> String {
+    "Ok".into()
+}
+fn get_health_docs(docs: TransformOperation) -> TransformOperation {
+    docs.summary("Basic API health check")
+        .response_with::<200, &'static str, _>(|res| res.example("Ok"))
+}

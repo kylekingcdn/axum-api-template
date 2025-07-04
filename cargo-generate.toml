@@ -1,0 +1,17 @@
+# [placeholders.project-name]
+# prompt = "Project name (e.g. example-api):"
+# type = "string"
+[placeholders.project-name-pretty]
+prompt = "Project pretty name (e.g. Example API):"
+type = "string"
+
+[placeholders.db_support]
+prompt = "Database support?"
+type = "bool"
+default = false
+
+[conditional.'db_support == false']
+ignore = [ "src/db", "src/db.rs", "migrations", "build.rs" ]
+
+[template]
+ignore = []

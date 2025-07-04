@@ -1,0 +1,74 @@
+use sqlx::FromRow;
+use sqlx::postgres::{PgPool, Postgres};
+use uuid::Uuid;
+
+use crate::db::{DbError, Repository};
+
+#[derive(Debug, Clone, FromRow)]
+pub struct ExampleRow {
+    pub id: Uuid,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExampleRepository {
+    db: PgPool,
+}
+
+// type aliases provided to allow for more portable (aka NOT DRY) code
+type Repo = ExampleRepository;
+type Row = ExampleRow;
+
+impl Repository for Repo {
+    const TABLE_NAME: &'static str = "example";
+    type Row = ExampleRow;
+
+    fn new(db: PgPool) -> Self {
+        Self { db }
+    }
+}
+
+impl Repo {
+    pub async fn get_all(&self) -> Result<Vec<Row>, DbError> {
+        let query_str = format!(
+            r#"
+            SELECT * FROM "public"."{}"
+            "#,
+            Self::TABLE_NAME
+        );
+
+        let rows = sqlx::query_as::<Postgres, Row>(&query_str)
+            .fetch_all(&self.db)
+            .await?;
+
+        Ok(rows)
+    }
+    pub async fn delete_all(&self) -> Result<(), DbError> {
+        let query_str = format!(
+            r#"
+            DELETE FROM "public"."{}"
+            "#,
+            Self::TABLE_NAME
+        );
+
+        sqlx::query(&query_str).execute(&self.db).await?;
+
+        Ok(())
+    }
+    pub async fn get_by_id(&self, id: Uuid) -> Result<Row, DbError> {
+        let query_str = format!(
+            r#"
+            SELECT * FROM "public"."{0}"
+            WHERE "{0}"."id" = $1
+            "#,
+            Self::TABLE_NAME
+        );
+
+        let rows = sqlx::query_as::<Postgres, Row>(&query_str)
+            .bind(id)
+            .fetch_one(&self.db)
+            .await
+            .map_err(|e| DbError::map_not_found(e, "Example", Some(id.to_string())))?;
+
+        Ok(rows)
+    }
+}
