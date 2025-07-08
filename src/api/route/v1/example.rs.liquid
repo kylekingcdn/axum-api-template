@@ -2,7 +2,6 @@ use aide::axum::{ApiRouter, IntoApiResponse};
 use aide::axum::routing::get_with;
 use aide::openapi::Tag;
 use aide::transform::TransformOperation;
-use aide::OperationIo;
 use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
@@ -65,17 +64,17 @@ fn get_example_docs(docs: TransformOperation) -> TransformOperation {
         ))
 }
 
-#[derive(Deserialize, JsonSchema)]
-pub struct GetExampleObjQuery {
+#[derive(Debug, Deserialize, JsonSchema)]
+struct GetExampleObjQuery {
     /// ID of the object
     id: Uuid
 }
 
-#[derive(Serialize, JsonSchema, OperationIo)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct ExampleObj {
     /// ID of the object
-    id: Uuid,
+    pub id: Uuid,
     /// Description of the object
-    description: String
+    pub description: String
 }
 
