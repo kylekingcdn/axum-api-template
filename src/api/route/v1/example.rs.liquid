@@ -6,11 +6,17 @@ use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::api::{ApiContext, ApiError};
-use crate::api::response::{ListResponse, ObjResponse};
+use crate::api::{
+    ApiContext, ApiError,
+    model::{
+        ApiExample,
+        example::ExampleObj,
+    },
+    response::{ListResponse, ObjResponse},
+};
 
 pub const TAG_NAME: &str = "example";
 pub const TAG_DESC: Option<&str> = None;
@@ -60,7 +66,7 @@ fn get_example_docs(docs: TransformOperation) -> TransformOperation {
     docs.summary("Get example object")
         .description("Get example API request description.")
         .response_with::<200, Json<ObjResponse<ExampleObj>>, _>(|res| res.example(
-            ObjResponse::new(ExampleObj { id: Uuid::new_v4(), description: "Example object".into() }, StatusCode::OK)
+            ObjResponse::ok(ExampleObj::example())
         ))
 }
 
@@ -69,12 +75,3 @@ struct GetExampleObjQuery {
     /// ID of the object
     id: Uuid
 }
-
-#[derive(Debug, Clone, Serialize, JsonSchema)]
-pub struct ExampleObj {
-    /// ID of the object
-    pub id: Uuid,
-    /// Description of the object
-    pub description: String
-}
-

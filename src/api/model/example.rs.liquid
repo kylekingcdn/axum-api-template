@@ -1,0 +1,11 @@
+use schemars::JsonSchema;
+use serde::Serialize;
+use uuid::Uuid;
+
+#[derive(Debug, Clone, Serialize, JsonSchema)]
+pub struct ExampleObj {
+    /// ID of the object
+    pub id: Uuid,
+    /// Description of the object
+    pub description: String
+}

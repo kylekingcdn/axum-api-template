@@ -1,0 +1,8 @@
+use serde::Serialize;
+
+pub mod example;
+
+/// Trait used to standardize retrieval of API example data
+pub trait ApiExample: Sized + Serialize {
+    fn example() -> Self;
+}
