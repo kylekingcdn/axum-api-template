@@ -14,4 +14,4 @@ default = false
 ignore = [ "src/db", "src/db.rs", "migrations", "build.rs" ]
 
 [template]
-ignore = []
+ignore = ["README.md"]
