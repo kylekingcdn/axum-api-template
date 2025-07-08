@@ -8,7 +8,7 @@ use crate::api::error::ApiError;
 
 #[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct ObjResponse<T> {
-    /// List contents
+    /// Object data
     pub data: Option<T>,
     /// Error message, if any
     pub error: Option<String>,
@@ -24,6 +24,23 @@ impl<T> ObjResponse<T> {
             error: None,
             status: status.as_u16(),
             status_text: status.to_string(),
+        }
+    }
+    pub fn ok(data: T) -> Self {
+        Self::new(data, StatusCode::OK)
+    }
+    pub fn accepted(data: T) -> Self {
+        Self::new(data, StatusCode::ACCEPTED)
+    }
+    pub fn created(data: T) -> Self {
+        Self::new(data, StatusCode::CREATED)
+    }
+    pub fn no_content() -> Self {
+        Self {
+            data: None,
+            error: None,
+            status: StatusCode::NO_CONTENT.as_u16(),
+            status_text: StatusCode::NO_CONTENT.to_string(),
         }
     }
 }
@@ -76,6 +93,24 @@ impl<T> ListResponse<T> {
             error: None,
             status: status.as_u16(),
             status_text: status.to_string(),
+        }
+    }
+    pub fn ok(data: Vec<T>) -> Self {
+        Self::new(data, StatusCode::OK)
+    }
+    pub fn accepted(data: Vec<T>) -> Self {
+        Self::new(data, StatusCode::ACCEPTED)
+    }
+    pub fn created(data: Vec<T>) -> Self {
+        Self::new(data, StatusCode::CREATED)
+    }
+    pub fn no_content() -> Self {
+        Self {
+            data: None,
+            count: None,
+            error: None,
+            status: StatusCode::NO_CONTENT.as_u16(),
+            status_text: StatusCode::NO_CONTENT.to_string(),
         }
     }
 }
